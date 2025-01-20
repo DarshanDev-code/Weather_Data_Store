@@ -1,6 +1,6 @@
 from components.api_calling import get_whether_forecast
 from threading import Thread
-from database.database import Session,del_forecast,engine,City,Forecast,CityNotExists, get_cities_table, del_city_not_exists_table
+from database.database import Session,del_forecast,Forecast,CityNotExists, get_cities_table, del_city_not_exists_table
 
 def add_all_cities(start, stop, city):
     session = Session()  # Create a session for this thread
