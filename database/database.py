@@ -39,6 +39,7 @@ class Forecast(Base):
     __tablename__ = 'forecasts'
     id = Column(Integer, primary_key=True, autoincrement=True)
     city_id = Column(Integer, ForeignKey('cities.id'), nullable=False)
+    city_name = Column(String, nullable=False)
     date = Column(Date, nullable=False)
     weather = Column(String, nullable=False)
     city = relationship('City', back_populates='weather_forecast')
@@ -64,6 +65,8 @@ engine = create_engine(DATABASE_URL, echo=True)
 
 # Create Tables
 try:
+    
+    Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     print("Tables created successfully!")
 except Exception as e:
@@ -82,6 +85,7 @@ def add_city():
         print("Cities added successfully!")
     session.close()
 
+add_city()
 # Utility Function
 def get_cities_table():
     session = Session()

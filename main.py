@@ -12,7 +12,7 @@ def add_all_cities(start, stop, city):
                 forecast = data["data"]["forecast"]["forecastday"]
                 city_obj = session.merge(city[i])
                 for day in forecast:
-                    session.add(Forecast(city_id=city_obj.id, date=day["date"], weather=day['day']['condition']['text']))
+                    session.add(Forecast(city_id=city_obj.id,city_name=city_obj.name, date=day["date"], weather=day['day']['condition']['text']))
             else:
                 session.add(CityNotExists(name=city[i].name))
         session.commit()
