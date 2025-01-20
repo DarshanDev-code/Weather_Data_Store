@@ -1,48 +1,50 @@
+from concurrent.futures import ThreadPoolExecutor
+from database.database import Session, get_cities_table, del_forecast, del_city_not_exists_table,Forecast,CityNotExists
 from components.api_calling import get_whether_forecast
-from threading import Thread
-from database.database import Session,del_forecast,Forecast,CityNotExists, get_cities_table, del_city_not_exists_table
 
 def add_all_cities(start, stop, city):
-    session = Session()  # Create a session for this thread
+    session = Session()
     try:
         for i in range(start, stop):
             print(f"Processing city: {city[i].name}")
             data = get_whether_forecast(city[i].name)
             if data['success']:
                 forecast = data["data"]["forecast"]["forecastday"]
-                city_obj = session.merge(city[i])  # Reattach city object to session
+                city_obj = session.merge(city[i])
                 for day in forecast:
                     session.add(Forecast(city_id=city_obj.id, date=day["date"], weather=day['day']['condition']['text']))
-                session.commit()  # Commit after processing all forecasts for a city
             else:
                 session.add(CityNotExists(name=city[i].name))
-                session.commit()
-                print(f"{city[i].name} not found. Reason: {data['msg']}")
+        session.commit()
     except Exception as e:
-        session.rollback()  # Rollback the transaction in case of error
-        print(f"Error processing city {city[i].name}: {e}")
+        session.rollback()
+        print(f"Error: {e}")
     finally:
-        session.close()  # Always close the session
+        session.close()
 
 def main():
     cities = get_cities_table()
     city_len = len(cities)
+
+    # Clear existing data
     del_forecast()
     del_city_not_exists_table()
-    t1 = Thread(target=add_all_cities, args=(0,city_len//4,cities))
-    t2 = Thread(target=add_all_cities, args=(city_len//4,city_len//2,cities))
-    t3 = Thread(target=add_all_cities, args=(city_len//2,(city_len//2+city_len//4),cities))
-    t4 = Thread(target=add_all_cities, args=((city_len//2+city_len//4),city_len,cities))
-    t1.start()
-    t2.start()
-    t3.start()
-    t4.start()
-    t1.join()
-    t2.join()
-    t3.join()
-    t4.join()
 
-    print('Task completed')
+    num_threads = 4
+    chunk_size = city_len // num_threads
+
+    with ThreadPoolExecutor(max_workers=num_threads) as executor:
+        futures = []
+        for i in range(num_threads):
+            start = i * chunk_size
+            stop = (i + 1) * chunk_size if i < num_threads - 1 else city_len
+            futures.append(executor.submit(add_all_cities, start, stop, cities))
+        
+        # Wait for all threads to complete
+        for future in futures:
+            future.result()
+
+    print("Task completed")
 
 if __name__ == "__main__":
     main()
